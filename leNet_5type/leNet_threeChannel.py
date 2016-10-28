@@ -282,13 +282,13 @@ def main(argv=None):  # pylint: disable=unused-argument
   # Training computation: logits + cross-entropy loss.
   logits, logitsclr = model(train_data_node, True)
   evallogits, evallogitsclr = model(eval_data_node, True)
-  loss = tf.reduce_mean(0.5 * tf.nn.sparse_softmax_cross_entropy_with_logits(logits, train_labels_node) \
-                      + 0.5 * tf.nn.sparse_softmax_cross_entropy_with_logits(logitsclr, train_colors_node))
+  loss = tf.reduce_mean(0.5 * tf.nn.sparse_softmax_cross_entropy_with_logits(logits, train_labels_node))
+                      # + 0.5 * tf.nn.sparse_softmax_cross_entropy_with_logits(logitsclr, train_colors_node))
 
   # L2 regularization for the fully connected parameters.
   regularizers = 0.5 * (tf.nn.l2_loss(fc1_weights) + tf.nn.l2_loss(fc1_biases) +
-                  tf.nn.l2_loss(fc2_weights) + tf.nn.l2_loss(fc2_biases)) \
-                  + 0.5 * (tf.nn.l2_loss(fcclr_weights) + tf.nn.l2_loss(fcclr_biases))
+                  tf.nn.l2_loss(fc2_weights) + tf.nn.l2_loss(fc2_biases))
+               # + 0.5 * (tf.nn.l2_loss(fcclr_weights) + tf.nn.l2_loss(fcclr_biases)))
   # Add the regularization term to the loss.
   loss += 5e-4 * regularizers
 
@@ -328,15 +328,14 @@ def main(argv=None):  # pylint: disable=unused-argument
     for begin in xrange(0, size, EVAL_BATCH_SIZE):
       end = begin + EVAL_BATCH_SIZE
       if end <= size:
-        predictions_label_result[begin:end, :], predictions_color_result[begin:end, :] = sess.run(
-            [eval_label_prediction, eval_color_prediction],
+        predictions_label_result[begin:end, :] = sess.run(
+            eval_label_prediction,
             feed_dict={eval_data_node: data[begin:end, ...]})
       else:
-        batch_label_predictions, batch_color_predictions = sess.run(
-          [eval_label_prediction, eval_color_prediction],
+        batch_label_predictions = sess.run(
+          eval_label_prediction,
           feed_dict={eval_data_node: data[-EVAL_BATCH_SIZE:, ...]})
         predictions_label_result[begin:, :] = batch_label_predictions[begin - size:, :]
-        predictions_color_result[begin:, :] = batch_color_predictions[begin - size:, :]
     return predictions_label_result, predictions_color_result
 
   # Create a local session to run the training.
@@ -359,8 +358,8 @@ def main(argv=None):  # pylint: disable=unused-argument
                    train_labels_node: batch_labels,
                    train_colors_node: batch_colors}
       # Run the graph and fetch some of the nodes.
-      _, l, lr, label_predictions, color_predictions = sess.run(
-          [optimizer, loss, learning_rate, train_label_prediction, train_color_prediction],
+      _, l, lr, label_predictions = sess.run(
+          [optimizer, loss, learning_rate, train_label_prediction],
           feed_dict=feed_dict)
       if step % EVAL_FREQUENCY == 0:
         elapsed_time = time.time() - start_time
@@ -370,17 +369,17 @@ def main(argv=None):  # pylint: disable=unused-argument
                1000 * elapsed_time / EVAL_FREQUENCY))
         print('Minibatch loss: %.3f, learning rate: %.6f' % (l, lr))
         print('Minibatch label error: %.1f%%' % error_rate(label_predictions, batch_labels))
-        print('Minibatch color error: %.1f%%' % error_rate(color_predictions, batch_colors))
+        # print('Minibatch color error: %.1f%%' % error_rate(color_predictions, batch_colors))
         eval_label_predictions, eval_color_predictions = eval_in_batches(validation_data, sess)
         print('Validation label error: %.1f%%' % error_rate(eval_label_predictions, validation_labels))
-        print('Validation color error: %.1f%%' % error_rate(eval_color_predictions, validation_colors))
+        # print('Validation color error: %.1f%%' % error_rate(eval_color_predictions, validation_colors))
         sys.stdout.flush()
     # Finally print the result!
     test_label_predictions, test_color_predictions = eval_in_batches(test_data, sess)
     test_label_error = error_rate(test_label_predictions, test_labels)
-    test_color_error = error_rate(test_color_predictions, test_colors)
+    # test_color_error = error_rate(test_color_predictions, test_colors)
     print('Test label error: %.1f%%' % test_label_error)
-    print('Test color error: %.1f%%' % test_color_error)
+    # print('Test color error: %.1f%%' % test_color_error)
     if FLAGS.self_test:
       print('test_label_error', test_label_error)
       assert test_label_error == 0.0, 'expected 0.0 test_error, got %.2f' % (
