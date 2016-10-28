@@ -12,7 +12,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
 from parameter import *
+import argparse
+import gzip
+import os
+import sys
+import time
+
+import numpy
+from six.moves import urllib
+from six.moves import xrange  # pylint: disable=redefined-builtin
+import tensorflow as tf
+from tensorflow.contrib.learn.python.learn.datasets import base
 
 def data_type():
   """Return the type of the activations, weights, and placeholder variables."""

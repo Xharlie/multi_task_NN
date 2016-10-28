@@ -19,10 +19,24 @@ This should achieve a test error of 0.7%. Please keep this model as simple and
 linear as possible, it is meant as a tutorial for simple convolutional models.
 Run with --self_test on the command line to execute a short self-test.
 """
-
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
 from parameter import *
 from mnist_util import *
 
+
+import argparse
+import gzip
+import os
+import sys
+import time
+
+import numpy
+from six.moves import urllib
+from six.moves import xrange  # pylint: disable=redefined-builtin
+import tensorflow as tf
+from tensorflow.contrib.learn.python.learn.datasets import base
 
 def main(argv=None):  # pylint: disable=unused-argument
   if FLAGS.self_test:
