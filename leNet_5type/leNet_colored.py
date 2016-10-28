@@ -37,7 +37,7 @@ from tensorflow.contrib.learn.python.learn.datasets import base
 
 
 SOURCE_URL = 'http://yann.lecun.com/exdb/mnist/'
-WORK_DIRECTORY = 'data'
+WORK_DIRECTORY = 'data_2task'
 IMAGE_SIZE = 28
 NUM_CHANNELS = 3
 ORI_NUM_CHANNELS = 1
