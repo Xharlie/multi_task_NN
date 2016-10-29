@@ -51,7 +51,7 @@ def variable_summaries(var, name):
     tf.scalar_summary('min/' + name, tf.reduce_min(var))
     tf.histogram_summary(name, var)
 
-def inference(data, train=False):
+def inference():
 
   # The variables below hold all the trainable weights. They are passed an
   # initial value which will be assigned when we call:
@@ -86,92 +86,99 @@ def inference(data, train=False):
   fc2_biases = tf.Variable(tf.constant(
       0.1, shape=[NUM_LABELS], dtype=data_type(FLAGS)))
 
-  if train:
-    variable_summaries(conv1_weights, "conv1_weights") #!!!
-    variable_summaries(conv1_biases, "conv1_biases")  #!!!
-    variable_summaries(fcclr_weights, "fcclr_weights") #!!!
-    variable_summaries(fcclr_biases, "fcclr_biases")  #!!!
-    variable_summaries(conv2_weights, "conv2_weights") #!!!
-    variable_summaries(conv2_biases, "conv2_biases")  #!!!
-    variable_summaries(fc1_weights, "fc1_weights") #!!!
-    variable_summaries(fc1_biases, "fc1_biases")  #!!!
-    variable_summaries(fc2_weights, "fc2_weights") #!!!
-    variable_summaries(fc2_biases, "fc2_biases")  #!!!
+  variable_summaries(conv1_weights, "conv1_weights") #!!!
+  variable_summaries(conv1_biases, "conv1_biases")  #!!!
+  variable_summaries(fcclr_weights, "fcclr_weights") #!!!
+  variable_summaries(fcclr_biases, "fcclr_biases")  #!!!
+  variable_summaries(conv2_weights, "conv2_weights") #!!!
+  variable_summaries(conv2_biases, "conv2_biases")  #!!!
+  variable_summaries(fc1_weights, "fc1_weights") #!!!
+  variable_summaries(fc1_biases, "fc1_biases")  #!!!
+  variable_summaries(fc2_weights, "fc2_weights") #!!!
+  variable_summaries(fc2_biases, "fc2_biases")  #!!!
+  return conv1_weights, conv1_biases, \
+          fcclr_weights, fcclr_biases, \
+          conv2_weights, conv2_biases, \
+          fc1_weights, fc1_biases, \
+          fc2_weights, fc2_biases
 
-  # We will replicate the model structure for the training subgraph, as well
-  # as the evaluation subgraphs, while sharing the trainable parameters.
-  def model(data, train=False):
-    """The Model definition."""
-    # 2D convolution, with 'SAME' padding (i.e. the output feature map has
-    # the same size as the input). Note that {strides} is a 4D array whose
-    # shape matches the data layout: [image index, y, x, depth].
-    with tf.name_scope('conv1') as scope:
-      conv = tf.nn.conv2d(data,
-                          conv1_weights,
-                          strides=[1, 1, 1, 1],
-                          padding='SAME')
-      # Bias and rectified linear non-linearity.
-      relu = tf.nn.relu(tf.nn.bias_add(conv, conv1_biases),name=scope)
-      # Max pooling. The kernel size spec {ksize} also follows the layout of
-      # the data. Here we have a pooling window of 2, and a stride of 2.
-      tf.histogram_summary(relu.op.name + '/activations', relu) #!!!
-      print_activations(relu)
+# We will replicate the model structure for the training subgraph, as well
+# as the evaluation subgraphs, while sharing the trainable parameters.
+def model(data, conv1_weights, conv1_biases,
+          fcclr_weights, fcclr_biases,
+          conv2_weights, conv2_biases,
+          fc1_weights, fc1_biases,
+          fc2_weights, fc2_biases, train=False,):
+  """The Model definition."""
+  # 2D convolution, with 'SAME' padding (i.e. the output feature map has
+  # the same size as the input). Note that {strides} is a 4D array whose
+  # shape matches the data layout: [image index, y, x, depth].
+  with tf.name_scope('conv1') as scope:
+    conv = tf.nn.conv2d(data,
+                        conv1_weights,
+                        strides=[1, 1, 1, 1],
+                        padding='SAME')
+    # Bias and rectified linear non-linearity.
+    relu = tf.nn.relu(tf.nn.bias_add(conv, conv1_biases),name=scope)
+    # Max pooling. The kernel size spec {ksize} also follows the layout of
+    # the data. Here we have a pooling window of 2, and a stride of 2.
+    if train: tf.histogram_summary(relu.op.name + '/activations', relu) #!!!
+    print_activations(relu)
 
-    with tf.name_scope('pool2') as scope:
-      pool = tf.nn.max_pool(relu,
-                            ksize=[1, 2, 2, 1],
-                            strides=[1, 2, 2, 1],
-                            padding='SAME', name=scope)
-      print_activations(pool)
-      pool_shape = pool.get_shape().as_list()
+  with tf.name_scope('pool2') as scope:
+    pool = tf.nn.max_pool(relu,
+                          ksize=[1, 2, 2, 1],
+                          strides=[1, 2, 2, 1],
+                          padding='SAME', name=scope)
+    print_activations(pool)
+    pool_shape = pool.get_shape().as_list()
 
-    with tf.name_scope('fcclr') as scope:
-      reshapeclr = tf.reshape(
+  with tf.name_scope('fcclr') as scope:
+    reshapeclr = tf.reshape(
+      pool,
+      [pool_shape[0], pool_shape[1] * pool_shape[2] * pool_shape[3]])
+    # Fully connected layer. Note that the '+' operation automatically
+    # broadcasts the biases.
+    print_activations(reshapeclr)
+
+  with tf.name_scope('conv3') as scope:
+
+    conv = tf.nn.conv2d(pool,
+                        conv2_weights,
+                        strides=[1, 1, 1, 1],
+                        padding='SAME')
+    relu = tf.nn.relu(tf.nn.bias_add(conv, conv2_biases),name=scope)
+    print_activations(relu)
+    if train: tf.histogram_summary(relu.op.name + '/activations', relu) #!!!!
+
+  with tf.name_scope('pool4') as scope:
+    pool = tf.nn.max_pool(relu,
+                          ksize=[1, 2, 2, 1],
+                          strides=[1, 2, 2, 1],
+                          padding='SAME',name=scope)
+    # Reshape the feature map cuboid into a 2D matrix to feed it to the
+    # fully connected layers.
+    pool_shape = pool.get_shape().as_list()
+    print_activations(pool)
+
+  with tf.name_scope('fc1') as scope:
+    reshape = tf.reshape(
         pool,
         [pool_shape[0], pool_shape[1] * pool_shape[2] * pool_shape[3]])
-      # Fully connected layer. Note that the '+' operation automatically
-      # broadcasts the biases.
-      print_activations(reshapeclr)
+    # Fully connected layer. Note that the '+' operation automatically
+    # broadcasts the biases.
+    hidden = tf.nn.relu(tf.matmul(reshape, fc1_weights) + fc1_biases,name=scope)
+    print_activations(hidden)
 
-    with tf.name_scope('conv3') as scope:
-
-      conv = tf.nn.conv2d(pool,
-                          conv2_weights,
-                          strides=[1, 1, 1, 1],
-                          padding='SAME')
-      relu = tf.nn.relu(tf.nn.bias_add(conv, conv2_biases),name=scope)
-      print_activations(relu)
-      tf.histogram_summary(relu.op.name + '/activations', relu) #!!!!
-
-    with tf.name_scope('pool4') as scope:
-      pool = tf.nn.max_pool(relu,
-                            ksize=[1, 2, 2, 1],
-                            strides=[1, 2, 2, 1],
-                            padding='SAME',name=scope)
-      # Reshape the feature map cuboid into a 2D matrix to feed it to the
-      # fully connected layers.
-      pool_shape = pool.get_shape().as_list()
-      print_activations(pool)
-
-    with tf.name_scope('fc1') as scope:
-      reshape = tf.reshape(
-          pool,
-          [pool_shape[0], pool_shape[1] * pool_shape[2] * pool_shape[3]])
-      # Fully connected layer. Note that the '+' operation automatically
-      # broadcasts the biases.
-      hidden = tf.nn.relu(tf.matmul(reshape, fc1_weights) + fc1_biases,name=scope)
-      print_activations(hidden)
-
-    # Add a 50% dropout during training only. Dropout also scales
-    # activations such that no rescaling is needed at evaluation time.
-    if train:
-      hidden = tf.nn.dropout(hidden, 0.5, seed=SEED)
-    return tf.matmul(hidden, fc2_weights) + fc2_biases, \
-           tf.matmul(reshapeclr, fcclr_weights) + fcclr_biases, \
-           {"fc1_weights":fc1_weights, "fc1_biases":fc1_biases,
-            "fc2_weights":fc2_weights, "fc2_biases":fc2_biases,
-            "fcclr_weights":fcclr_weights, "fcclr_biases":fcclr_biases}
-  return model(data, train=False)
+  # Add a 50% dropout during training only. Dropout also scales
+  # activations such that no rescaling is needed at evaluation time.
+  if train:
+    hidden = tf.nn.dropout(hidden, 0.5, seed=SEED)
+  return tf.matmul(hidden, fc2_weights) + fc2_biases, \
+         tf.matmul(reshapeclr, fcclr_weights) + fcclr_biases, \
+         {"fc1_weights":fc1_weights, "fc1_biases":fc1_biases,
+          "fc2_weights":fc2_weights, "fc2_biases":fc2_biases,
+          "fcclr_weights":fcclr_weights, "fcclr_biases":fcclr_biases}
 
 # Small utility function to evaluate a dataset by feeding batches of data to
 # {eval_data} and pulling the results from {eval_predictions}.
@@ -225,7 +232,7 @@ def load():
     train_labels = train_labels[VALIDATION_SIZE:]
     train_colors = train_colors[VALIDATION_SIZE:]
 
-  return train_data, train_labels,train_colors,\
+  return train_data, train_labels, train_colors,\
          validation_data, validation_labels, validation_colors, \
          test_data, test_labels, test_colors
 
@@ -256,7 +263,24 @@ def main(argv=None):  # pylint: disable=unused-argument
     tf.image_summary('input', train_data_node, 10)  #!!!
 
     # Training computation: logits + cross-entropy loss.
-    logits, logitsclr, regul = inference(train_data_node, True)
+    conv1_weights, conv1_biases, \
+    fcclr_weights, fcclr_biases, \
+    conv2_weights, conv2_biases, \
+    fc1_weights, fc1_biases, \
+    fc2_weights, fc2_biases = inference()
+
+    logits, logitsclr, regul = model(train_data_node,conv1_weights, conv1_biases, \
+                                      fcclr_weights, fcclr_biases, \
+                                      conv2_weights, conv2_biases, \
+                                      fc1_weights, fc1_biases, \
+                                      fc2_weights, fc2_biases , True)
+
+    evallogits, evallogitsclr, _ = model(eval_data_node, conv1_weights, conv1_biases, \
+                                      fcclr_weights, fcclr_biases, \
+                                      conv2_weights, conv2_biases, \
+                                      fc1_weights, fc1_biases, \
+                                      fc2_weights, fc2_biases, False)
+
     label_loss = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits, train_labels_node))
     image_loss = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logitsclr, train_colors_node))
     loss = 0.5 * label_loss + 0.5 * image_loss
@@ -272,7 +296,7 @@ def main(argv=None):  # pylint: disable=unused-argument
     )
     tf.scalar_summary('regularizers', regularizers) #!!!
     # Add the regularization term to the loss.
-    loss +=  regularizers
+    loss += regularizers
     tf.scalar_summary('loss', loss) #!!!
 
     # Optimizer: set up a variable that's incremented once per batch and
@@ -294,24 +318,23 @@ def main(argv=None):  # pylint: disable=unused-argument
     # Predictions for the current training minibatch.
     train_label_prediction = tf.nn.softmax(logits)
     train_color_prediction = tf.nn.softmax(logitsclr)
+    # Predictions for the test and validation, which we'll compute less often.
+    eval_label_prediction = tf.nn.softmax(evallogits)
+    eval_color_prediction = tf.nn.softmax(evallogitsclr)
 
     with tf.name_scope('accuracy'):
       with tf.name_scope('correct_prediction'):
-        correct_label_prediction = tf.equal(tf.argmax(train_label_prediction, 1), train_labels_node)
-        correct_color_prediction = tf.equal(tf.argmax(train_color_prediction, 1), train_colors_node)
+        correct_train_label_prediction = tf.equal(tf.argmax(train_label_prediction, 1), train_labels_node)
+        correct_train_color_prediction = tf.equal(tf.argmax(train_color_prediction, 1), train_colors_node)
       with tf.name_scope('accuracy'):
-        label_accuracy = tf.reduce_mean(tf.cast(correct_label_prediction, tf.float32))
-        color_accuracy = tf.reduce_mean(tf.cast(correct_color_prediction, tf.float32))
+        label_accuracy = tf.reduce_mean(tf.cast(correct_train_label_prediction, tf.float32))
+        color_accuracy = tf.reduce_mean(tf.cast(correct_train_color_prediction, tf.float32))
       tf.scalar_summary('label_accuracy', label_accuracy) #!!!
       tf.scalar_summary('color_accuracy', color_accuracy) #!!!
 
     merged = tf.merge_all_summaries()
     train_writer = tf.train.SummaryWriter(FLAGS.summaries_dir + '/train',
                                           sess.graph)
-    # Predictions for the test and validation, which we'll compute less often.
-    evallogits, evallogitsclr, _ = inference(eval_data_node, False)
-    eval_label_prediction = tf.nn.softmax(evallogits)
-    eval_color_prediction = tf.nn.softmax(evallogitsclr)
 
     # Create a local session to run the training.
     start_time = time.time()
