@@ -28,7 +28,7 @@ from six.moves import xrange  # pylint: disable=redefined-builtin
 import tensorflow as tf
 from tensorflow.contrib.learn.python.learn.datasets import base
 
-def data_type():
+def data_type(FLAGS):
   """Return the type of the activations, weights, and placeholder variables."""
   if FLAGS.use_fp16:
     return tf.float16
@@ -107,4 +107,4 @@ def transformImage(images, labels):
     for j in range(images.shape[1]):
       for k in range(images.shape[2]):
         colored_images[i][j][k][index] = images[i][j][k]
-  return [colored_images, color]
+  return colored_images, color

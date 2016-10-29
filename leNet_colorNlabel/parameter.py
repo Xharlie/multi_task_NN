@@ -29,4 +29,4 @@ EVAL_BATCH_SIZE = 64
 EVAL_FREQUENCY = 100  # Number of steps between evaluations.
 NUM_COLORS = 3
 
-FLAGS = None
+# FLAGS = None
