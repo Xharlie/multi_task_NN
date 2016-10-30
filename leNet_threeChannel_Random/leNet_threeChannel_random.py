@@ -69,10 +69,10 @@ def inference():
                         dtype=data_type(FLAGS)))
   fcclr_biases = tf.Variable(tf.constant(0.1, shape=[NUM_COLORS], dtype=data_type(FLAGS)))
 
-  conv2_weights = tf.Variable(tf.truncated_normal(
+  conv3_weights = tf.Variable(tf.truncated_normal(
       [5, 5, 32, 64], stddev=0.1,
       seed=SEED, dtype=data_type(FLAGS)))
-  conv2_biases = tf.Variable(tf.constant(0.1, shape=[64], dtype=data_type(FLAGS)))
+  conv3_biases = tf.Variable(tf.constant(0.1, shape=[64], dtype=data_type(FLAGS)))
   fc1_weights = tf.Variable(  # fully connected, depth 512.
       tf.truncated_normal([IMAGE_SIZE // 4 * IMAGE_SIZE // 4 * 64, 512],
                           stddev=0.1,
@@ -90,15 +90,15 @@ def inference():
   variable_summaries(conv1_biases, "conv1_biases")  #!!!
   variable_summaries(fcclr_weights, "fcclr_weights") #!!!
   variable_summaries(fcclr_biases, "fcclr_biases")  #!!!
-  variable_summaries(conv2_weights, "conv2_weights") #!!!
-  variable_summaries(conv2_biases, "conv2_biases")  #!!!
+  variable_summaries(conv3_weights, "conv3_weights") #!!!
+  variable_summaries(conv3_biases, "conv3_biases")  #!!!
   variable_summaries(fc1_weights, "fc1_weights") #!!!
   variable_summaries(fc1_biases, "fc1_biases")  #!!!
   variable_summaries(fc2_weights, "fc2_weights") #!!!
   variable_summaries(fc2_biases, "fc2_biases")  #!!!
   return conv1_weights, conv1_biases, \
           fcclr_weights, fcclr_biases, \
-          conv2_weights, conv2_biases, \
+          conv3_weights, conv3_biases, \
           fc1_weights, fc1_biases, \
           fc2_weights, fc2_biases
 
@@ -106,7 +106,7 @@ def inference():
 # as the evaluation subgraphs, while sharing the trainable parameters.
 def model(data, conv1_weights, conv1_biases,
           fcclr_weights, fcclr_biases,
-          conv2_weights, conv2_biases,
+          conv3_weights, conv3_biases,
           fc1_weights, fc1_biases,
           fc2_weights, fc2_biases, train=False,):
   """The Model definition."""
@@ -144,10 +144,10 @@ def model(data, conv1_weights, conv1_biases,
   with tf.name_scope('conv3') as scope:
 
     conv = tf.nn.conv2d(pool,
-                        conv2_weights,
+                        conv3_weights,
                         strides=[1, 1, 1, 1],
                         padding='SAME')
-    relu = tf.nn.relu(tf.nn.bias_add(conv, conv2_biases),name=scope)
+    relu = tf.nn.relu(tf.nn.bias_add(conv, conv3_biases),name=scope)
     print_activations(relu)
     if train: tf.histogram_summary(relu.op.name + '/activations', relu) #!!!!
 
@@ -264,19 +264,19 @@ def main(argv=None):  # pylint: disable=unused-argument
     # Training computation: logits + cross-entropy loss.
     conv1_weights, conv1_biases, \
     fcclr_weights, fcclr_biases, \
-    conv2_weights, conv2_biases, \
+    conv3_weights, conv3_biases, \
     fc1_weights, fc1_biases, \
     fc2_weights, fc2_biases = inference()
 
     logits, logitsclr, regul = model(train_data_node,conv1_weights, conv1_biases, \
                                       fcclr_weights, fcclr_biases, \
-                                      conv2_weights, conv2_biases, \
+                                      conv3_weights, conv3_biases, \
                                       fc1_weights, fc1_biases, \
                                       fc2_weights, fc2_biases , True)
 
     evallogits, evallogitsclr, _ = model(eval_data_node, conv1_weights, conv1_biases, \
                                       fcclr_weights, fcclr_biases, \
-                                      conv2_weights, conv2_biases, \
+                                      conv3_weights, conv3_biases, \
                                       fc1_weights, fc1_biases, \
                                       fc2_weights, fc2_biases, False)
 
