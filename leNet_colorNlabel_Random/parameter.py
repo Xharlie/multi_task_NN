@@ -8,11 +8,12 @@ import os
 import sys
 import time
 
-import numpy
+import random
 from six.moves import urllib
 from six.moves import xrange  # pylint: disable=redefined-builtin
 import tensorflow as tf
 from tensorflow.contrib.learn.python.learn.datasets import base
+
 
 SOURCE_URL = 'http://yann.lecun.com/exdb/mnist/'
 WORK_DIRECTORY = 'data_2task'
@@ -28,5 +29,7 @@ NUM_EPOCHS = 3
 EVAL_BATCH_SIZE = 64
 EVAL_FREQUENCY = 20  # Number of steps between evaluations.
 NUM_COLORS = 3
+LABEL_LOSS_WEIGHT = 0.5
+COLOR_LOSS_WEIGHT = 0.5
 
 # FLAGS = None

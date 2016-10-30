@@ -23,6 +23,7 @@ import sys
 import time
 
 import numpy
+import random
 from six.moves import urllib
 from six.moves import xrange  # pylint: disable=redefined-builtin
 import tensorflow as tf
@@ -106,6 +107,11 @@ def transformImage(images, labels):
     color[i] = index
     for j in range(images.shape[1]):
       for k in range(images.shape[2]):
-        
-        colored_images[i][j][k][index] = images[i][j][k]
+        redBase = random.uniform(0, 0.7)
+        greenBase = random.uniform(0, 0.7)
+        blueBase = random.uniform(0, 0.7)
+        colored_images[i][j][k][0] = redBase
+        colored_images[i][j][k][1] = greenBase
+        colored_images[i][j][k][2] = blueBase
+        colored_images[i][j][k][index] += images[i][j][k] * 0.3
   return colored_images, color

@@ -22,7 +22,7 @@ Run with --self_test on the command line to execute a short self-test.
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
-from parameter import *
+
 from mnist_util import *
 
 
@@ -37,6 +37,8 @@ from six.moves import urllib
 from six.moves import xrange  # pylint: disable=redefined-builtin
 import tensorflow as tf
 from tensorflow.contrib.learn.python.learn.datasets import base
+
+from parameter import *
 
 
 def variable_summaries(var, name):
@@ -283,16 +285,16 @@ def main(argv=None):  # pylint: disable=unused-argument
 
     label_loss = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits, train_labels_node))
     image_loss = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logitsclr, train_colors_node))
-    loss = 0.5 * label_loss + 0.5 * image_loss
+    loss = LABEL_LOSS_WEIGHT * label_loss + COLOR_LOSS_WEIGHT5 * image_loss
     tf.scalar_summary('label_loss', label_loss) #!!!
     tf.scalar_summary('image_loss', image_loss) #!!!
     tf.scalar_summary('weighted_loss', loss)  #!!!
 
     # L2 regularization for the fully connected parameters.
     regularizers = 5e-4 *(
-                    0.5 * (tf.nn.l2_loss(regul["fc1_weights"]) + tf.nn.l2_loss(regul["fc1_biases"]) +
+                    LABEL_LOSS_WEIGHT * (tf.nn.l2_loss(regul["fc1_weights"]) + tf.nn.l2_loss(regul["fc1_biases"]) +
                     tf.nn.l2_loss(regul["fc2_weights"]) + tf.nn.l2_loss(regul["fc2_biases"])) \
-                    + 0.5 * (tf.nn.l2_loss(regul["fcclr_weights"]) + tf.nn.l2_loss(regul["fcclr_biases"]))
+                    + COLOR_LOSS_WEIGHT5 * (tf.nn.l2_loss(regul["fcclr_weights"]) + tf.nn.l2_loss(regul["fcclr_biases"]))
     )
     tf.scalar_summary('regularizers', regularizers) #!!!
     # Add the regularization term to the loss.
