@@ -237,9 +237,8 @@ def load():
          test_data, test_labels, test_colors
 
 def main(argv=None):  # pylint: disable=unused-argument
-  if tf.gfile.Exists(FLAGS.summaries_dir):
-    tf.gfile.DeleteRecursively(FLAGS.summaries_dir)
-  tf.gfile.MakeDirs(FLAGS.summaries_dir)
+  if not tf.gfile.Exists(FLAGS.summaries_dir):
+    tf.gfile.MakeDirs(FLAGS.summaries_dir)
 
   with tf.Session() as sess:
     train_data, train_labels, train_colors, \
@@ -333,7 +332,7 @@ def main(argv=None):  # pylint: disable=unused-argument
       tf.scalar_summary('color_accuracy', color_accuracy) #!!!
 
     merged = tf.merge_all_summaries()
-    train_writer = tf.train.SummaryWriter(FLAGS.summaries_dir + '/train',
+    train_writer = tf.train.SummaryWriter(FLAGS.summaries_dir + '/' + str(COLOR_LOSS_WEIGHT) + '/train',
                                           sess.graph)
 
     # Create a local session to run the training.
