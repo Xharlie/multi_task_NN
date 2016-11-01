@@ -288,7 +288,7 @@ def main(argv=None):  # pylint: disable=unused-argument
     tf.scalar_summary('weighted_loss', loss)  #!!!
 
     # L2 regularization for the fully connected parameters.
-    regularizers = 5e-4 * (
+    regularizers = REGULRATE * (
       LABEL_LOSS_WEIGHT * (tf.nn.l2_loss(regul["fc1_weights"]) + tf.nn.l2_loss(regul["fc1_biases"]) +
                            tf.nn.l2_loss(regul["fc2_weights"]) + tf.nn.l2_loss(regul["fc2_biases"])) \
       + COLOR_LOSS_WEIGHT * (tf.nn.l2_loss(regul["fcclr_weights"]) + tf.nn.l2_loss(regul["fcclr_biases"]))
