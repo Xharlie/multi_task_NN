@@ -332,7 +332,7 @@ def main(argv=None):  # pylint: disable=unused-argument
       tf.scalar_summary('color_accuracy', color_accuracy) #!!!
 
     merged = tf.merge_all_summaries()
-    train_writer = tf.train.SummaryWriter(FLAGS.summaries_dir + '/' + str(COLOR_LOSS_WEIGHT) + '/train',
+    train_writer = tf.train.SummaryWriter(FLAGS.summaries_dir + '/' + str(REGULRATE) + '/' + str(COLOR_LOSS_WEIGHT) + '/train',
                                           sess.graph)
 
     # Create a local session to run the training.
