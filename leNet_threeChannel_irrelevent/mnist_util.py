@@ -98,7 +98,47 @@ def print_activations(t):
   print(t.op.name, ' ', t.get_shape().as_list())
 
 
-def transformImage(images, labels):
+def transformImage(images, labels, method):
+  if method == 'linear' :
+    return transformImage_linear(images, labels)
+  elif method == 'irrelevent' :
+    return transformImage_irrelevent(images, labels)
+  elif method == 'correlated' :
+    return transformImage_correlated(images, labels)
+  else :
+    raise Exception('wrong argument of source method')
+
+def transformImage_linear(images, labels):
+  colored_images = numpy.zeros((images.shape[0], images.shape[1], images.shape[2], 3), dtype=numpy.float32)
+  color = numpy.zeros((labels.size,), dtype=numpy.int32)
+  for i in range(images.shape[0]):
+    index = labels[i] // 3
+    if index == 3: index = 2
+    color[i] = index
+    for j in range(images.shape[1]):
+      for k in range(images.shape[2]):
+        colored_images[i][j][k][index] = images[i][j][k]
+  return colored_images, color
+
+def transformImage_correlated(images, labels):
+  colored_images = numpy.zeros((images.shape[0], images.shape[1], images.shape[2], 3), dtype=numpy.float32)
+  color = numpy.zeros((labels.size,), dtype=numpy.int32)
+  for i in range(images.shape[0]):
+    index = labels[i] // 3
+    if index == 3: index = 2
+    color[i] = index
+    for j in range(images.shape[1]):
+      for k in range(images.shape[2]):
+        redBase = random.uniform(0, 0.7)
+        greenBase = random.uniform(0, 0.7)
+        blueBase = random.uniform(0, 0.7)
+        colored_images[i][j][k][0] = redBase
+        colored_images[i][j][k][1] = greenBase
+        colored_images[i][j][k][2] = blueBase
+        colored_images[i][j][k][index] += images[i][j][k] * 0.3
+  return colored_images, color
+
+def transformImage_irrelevent(images, labels):
   colored_images = numpy.zeros((images.shape[0], images.shape[1], images.shape[2], 3), dtype=numpy.float32)
   color = numpy.zeros((labels.size,), dtype=numpy.int32)
   for i in range(images.shape[0]):

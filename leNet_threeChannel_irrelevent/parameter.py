@@ -29,8 +29,6 @@ NUM_EPOCHS = 3
 EVAL_BATCH_SIZE = 64
 EVAL_FREQUENCY = 20  # Number of steps between evaluations.
 NUM_COLORS = 3
-LABEL_LOSS_WEIGHT = 1
-COLOR_LOSS_WEIGHT = 0
-REGULRATE = 5e-4
+
 
 # FLAGS = None

@@ -206,7 +206,7 @@ def eval_in_batches(data, sess, eval_label_prediction, eval_color_prediction, ev
       predictions_color_result[begin:, :] = batch_color_predictions[begin - size:, :]
   return predictions_label_result, predictions_color_result
 
-def load():
+def load(source):
   if FLAGS.self_test:
     print('Running self-test.')
     train_data, train_labels = fake_data(256)
@@ -222,9 +222,9 @@ def load():
 
     # Extract it into numpy arrays.
     train_labels = extract_labels(train_labels_filename, 60000)
-    train_data, train_colors = transformImage(extract_data(train_data_filename, 60000), train_labels)
+    train_data, train_colors = transformImage(extract_data(train_data_filename, 60000), train_labels, source)
     test_labels = extract_labels(test_labels_filename, 10000)
-    test_data, test_colors = transformImage(extract_data(test_data_filename, 10000), test_labels)
+    test_data, test_colors = transformImage(extract_data(test_data_filename, 10000), test_labels, source)
 
     # Generate a validation set.
     validation_data = train_data[:VALIDATION_SIZE, ...]
@@ -241,11 +241,13 @@ def load():
 def main(argv=None):  # pylint: disable=unused-argument
   if not tf.gfile.Exists(FLAGS.summaries_dir):
     tf.gfile.MakeDirs(FLAGS.summaries_dir)
-
+  print("FLAGS.colorweight=" + str(FLAGS.colorweight))
+  print("FLAGS.regulrate=" + str(FLAGS.regulrate))
+  print("FLAGS.source=" + str(FLAGS.source))
   with tf.Session() as sess:
     train_data, train_labels, train_colors, \
     validation_data, validation_labels, validation_colors, \
-    test_data, test_labels, test_colors = load()
+    test_data, test_labels, test_colors = load(FLAGS.source)
 
     num_epochs = NUM_EPOCHS
     train_size = train_labels.shape[0]
@@ -284,16 +286,16 @@ def main(argv=None):  # pylint: disable=unused-argument
 
     label_loss = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits, train_labels_node))
     image_loss = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logitsclr, train_colors_node))
-    loss = LABEL_LOSS_WEIGHT * label_loss + COLOR_LOSS_WEIGHT * image_loss
+    loss = (1 - FLAGS.colorweight) * label_loss + FLAGS.colorweight * image_loss
     tf.scalar_summary('label_loss', label_loss) #!!!
     tf.scalar_summary('image_loss', image_loss) #!!!
     tf.scalar_summary('weighted_loss', loss)  #!!!
 
     # L2 regularization for the fully connected parameters.
-    regularizers = REGULRATE *(
-                    LABEL_LOSS_WEIGHT * (tf.nn.l2_loss(regul["fc1_weights"]) + tf.nn.l2_loss(regul["fc1_biases"]) +
-                    tf.nn.l2_loss(regul["fc2_weights"]) + tf.nn.l2_loss(regul["fc2_biases"])) \
-                    + COLOR_LOSS_WEIGHT * (tf.nn.l2_loss(regul["fcclr_weights"]) + tf.nn.l2_loss(regul["fcclr_biases"]))
+    regularizers = FLAGS.regulrate * (
+      (1 - FLAGS.colorweight) * (tf.nn.l2_loss(regul["fc1_weights"]) + tf.nn.l2_loss(regul["fc1_biases"]) +
+                                 tf.nn.l2_loss(regul["fc2_weights"]) + tf.nn.l2_loss(regul["fc2_biases"]))
+      + FLAGS.colorweight * (tf.nn.l2_loss(regul["fcclr_weights"]) + tf.nn.l2_loss(regul["fcclr_biases"]))
     )
     tf.scalar_summary('regularizers', regularizers) #!!!
     # Add the regularization term to the loss.
@@ -334,8 +336,9 @@ def main(argv=None):  # pylint: disable=unused-argument
       tf.scalar_summary('color_accuracy', color_accuracy) #!!!
 
     merged = tf.merge_all_summaries()
-    train_writer = tf.train.SummaryWriter(FLAGS.summaries_dir + '/' + str(REGULRATE) + '/' + str(COLOR_LOSS_WEIGHT) + '/train',
-                                          sess.graph)
+    train_writer = tf.train.SummaryWriter(
+      FLAGS.summaries_dir + '/' + FLAGS.source + '/' + str(FLAGS.regulrate) + '/' + str(FLAGS.colorweight) + '/train',
+      sess.graph)
 
     # Create a local session to run the training.
     start_time = time.time()
@@ -402,6 +405,23 @@ if __name__ == '__main__':
       default=False,
       action='store_true',
       help='True if running a self test.'
+  )
+  parser.add_argument(
+      '--colorweight',
+      type=float,
+      default=0.0,
+      help='Color Loss Weight.'
+  )
+  parser.add_argument(
+      '--regulrate',
+      type=float,
+      default=0,
+      help='Regularization Weight.'
+  )
+  parser.add_argument(
+      '--source',
+      type=str,
+      help='direct, correlated or irrelevent'
   )
   parser.add_argument('--summaries_dir', type=str, default='log',
                       help='Summaries directory')
