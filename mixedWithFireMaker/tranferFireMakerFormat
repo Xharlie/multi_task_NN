@@ -58,13 +58,15 @@ def extract_data(filename, num_images):
       tryAsc = ord(tryLine[0])
       if tryAsc <= ord('9'):
         tryLabel = tryAsc - ord('0')
+        break;
       else:
         tryLabel = tryAsc - ord('a') + 10
-        if filter[tryLabel] >= 200:
-          continue
+        if filter[tryLabel] < 200:
+          break
     filter[tryLabel] += 1
     lines[k] = tryLine
   numpy.random.shuffle(lines)
+
   for i in range(0, NUM_SAMPLES):
     line = lines[i]
     asc = ord(line[0])
