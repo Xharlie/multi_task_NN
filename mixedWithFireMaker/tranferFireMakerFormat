@@ -42,8 +42,8 @@ def extract_data(filename, num_images):
   #   data = data.reshape(num_images, IMAGE_SIZE, IMAGE_SIZE, ORI_NUM_CHANNELS)
   #   return data
 
-  data = numpy.full((35*100, IMAGE_SIZE, IMAGE_SIZE, ORI_NUM_CHANNELS), 0, dtype=numpy.float16)
-  label = numpy.full((35*100, 1), 0, dtype=numpy.uint8)
+  data = numpy.full((NUM_SAMPLES, IMAGE_SIZE, IMAGE_SIZE, ORI_NUM_CHANNELS), 0, dtype=numpy.float16)
+  label = numpy.full((NUM_SAMPLES, 1), 0, dtype=numpy.uint8)
   lines = [None] * num_images
   dimension = IMAGE_SIZE * IMAGE_SIZE
   f = open(filename)
@@ -62,10 +62,9 @@ def extract_data(filename, num_images):
       tryLabel = asc - ord('0')
     else:
       tryLabel = asc - ord('a') + 10
-    if filter[tryLabel] >= 100:
-      continue
+      if filter[tryLabel] >= 200:
+        continue
     filter[tryLabel] += 1
-    # print(line[0] + ":" + str(filter[tryLabel]))
     label[counter] = tryLabel
     for j in range(0, dimension):
       row = j // IMAGE_SIZE
