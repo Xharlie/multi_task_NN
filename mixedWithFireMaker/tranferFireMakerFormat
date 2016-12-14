@@ -44,32 +44,39 @@ def extract_data(filename, num_images):
 
   data = numpy.full((NUM_SAMPLES, IMAGE_SIZE, IMAGE_SIZE, ORI_NUM_CHANNELS), 0, dtype=numpy.float16)
   label = numpy.full((NUM_SAMPLES, 1), 0, dtype=numpy.uint8)
-  lines = [None] * num_images
+  lines = [None] * NUM_SAMPLES
   dimension = IMAGE_SIZE * IMAGE_SIZE
   f = open(filename)
-  maxV = 0
-  minV = 10
+  tryLine = ""
+  tryAsc = 0
   tryLabel = 0
   counter = 0
   filter = numpy.zeros(36)
-  for k in range(0, num_images):
-    lines[k] = f.readline()
+  for k in range(0, NUM_SAMPLES):
+    while True:
+      tryLine = f.readline()
+      tryAsc = ord(tryLine[0])
+      if tryAsc <= ord('9'):
+        tryLabel = tryAsc - ord('0')
+      else:
+        tryLabel = tryAsc - ord('a') + 10
+        if filter[tryLabel] >= 200:
+          continue
+    filter[tryLabel] += 1
+    lines[k] = tryLine
   numpy.random.shuffle(lines)
-  for i in range(0, num_images):
+  for i in range(0, NUM_SAMPLES):
     line = lines[i]
     asc = ord(line[0])
     if asc <= ord('9'):
       tryLabel = asc - ord('0')
     else:
       tryLabel = asc - ord('a') + 10
-      if filter[tryLabel] >= 200:
-        continue
-    filter[tryLabel] += 1
-    label[counter] = tryLabel
+    label[i] = tryLabel
     for j in range(0, dimension):
       row = j // IMAGE_SIZE
       column = j % IMAGE_SIZE
-      data[counter][row][column] = ord(line[2*j+3]) - ord('0')
+      data[i][row][column] = ord(line[2*j+3]) - ord('0')
     counter += 1
   f.close()
   return data, label
