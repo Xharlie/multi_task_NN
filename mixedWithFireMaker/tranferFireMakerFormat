@@ -42,38 +42,43 @@ def extract_data(filename, num_images):
   #   data = data.reshape(num_images, IMAGE_SIZE, IMAGE_SIZE, ORI_NUM_CHANNELS)
   #   return data
 
-  data = numpy.full((num_images, IMAGE_SIZE, IMAGE_SIZE, ORI_NUM_CHANNELS), 0, dtype=numpy.float16)
-  label = numpy.full((num_images, 1), 0, dtype=numpy.uint8)
+  data = numpy.full((35*100, IMAGE_SIZE, IMAGE_SIZE, ORI_NUM_CHANNELS), 0, dtype=numpy.float16)
+  label = numpy.full((35*100, 1), 0, dtype=numpy.uint8)
   lines = [None] * num_images
   dimension = IMAGE_SIZE * IMAGE_SIZE
   f = open(filename)
   maxV = 0
   minV = 10
-  for k in range(0 , num_images):
+  tryLabel = 0
+  counter = 0
+  filter = numpy.zeros(36)
+  for k in range(0, num_images):
     lines[k] = f.readline()
   numpy.random.shuffle(lines)
-  for i in range(0 , num_images):
+  for i in range(0, num_images):
     line = lines[i]
     asc = ord(line[0])
     if asc <= ord('9'):
-      label[i] = asc - ord('0')
+      tryLabel = asc - ord('0')
     else:
-      label[i] = asc - ord('a') + 10
-    minV = min(minV,label[i])
-    maxV = max(maxV,label[i])
+      tryLabel = asc - ord('a') + 10
+    if filter[tryLabel] >= 100:
+      continue
+    filter[tryLabel] += 1
+    # print(line[0] + ":" + str(filter[tryLabel]))
+    label[counter] = tryLabel
     for j in range(0, dimension):
       row = j // IMAGE_SIZE
       column = j % IMAGE_SIZE
-      data[i][row][column] = ord(line[2*j+3]) - ord('0')
+      data[counter][row][column] = ord(line[2*j+3]) - ord('0')
+    counter += 1
   f.close()
-  print(minV)
-  print(maxV)
   return data, label
 
 def write_back(file, data):
   print('Writing', file)
   data = data.ravel()
-  f = open(file, "ab")
+  f = open(file, "wb")
   f.write(data.tobytes())
   f.close()
 

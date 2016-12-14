@@ -276,26 +276,28 @@ def load():
     charSet_filename = WORK_DIRECTORY + '/charSet_source.dat'
 
     # Extract it into numpy arrays.
-    labels = extract_labels(label_filename, 40133)
-    charSet = extract_labels(charSet_filename, 40133)
-    color = extract_labels(color_filename, 40133)
-    data = extract_data(data_filename, 40133)
+    labels = extract_labels(label_filename, NUM_SAMPLES)
+    charSet = extract_labels(charSet_filename, NUM_SAMPLES)
+    color = extract_labels(color_filename, NUM_SAMPLES)
+    data = extract_data(data_filename, NUM_SAMPLES)
 
     # Generate a validation set.
-    train_data = data[:30000, ...]
-    train_labels = labels[:30000]
-    train_colors = color[:30000]
-    train_charSet = charSet[:30000]
+    print(NUM_SAMPLES // 1.5)
+    train_data = data[:NUM_SAMPLES // 1.5 , ...]
+    train_labels = labels[:NUM_SAMPLES // 1.5]
+    train_colors = color[:NUM_SAMPLES // 1.5]
+    train_charSet = charSet[:NUM_SAMPLES // 1.5]
 
-    validation_data = data[30000:35000, ...]
-    validation_colors = color[30000:35000]
-    validation_labels = labels[30000:35000]
-    validation_charSet = charSet[30000:35000]
+    print(NUM_SAMPLES // 1.2)
+    validation_data = data[NUM_SAMPLES // 1.5: NUM_SAMPLES // 1.2, ...]
+    validation_colors = color[NUM_SAMPLES // 1.5:NUM_SAMPLES // 1.2]
+    validation_labels = labels[NUM_SAMPLES // 1.5:NUM_SAMPLES // 1.2]
+    validation_charSet = charSet[NUM_SAMPLES // 1.5:NUM_SAMPLES // 1.2]
 
-    test_data = data[35000:, ...]
-    test_colors = color[35000:]
-    test_labels = labels[35000:]
-    test_charSet = charSet[35000:]
+    test_data = data[NUM_SAMPLES // 1.2:, ...]
+    test_colors = color[NUM_SAMPLES // 1.2:]
+    test_labels = labels[NUM_SAMPLES // 1.2:]
+    test_charSet = charSet[NUM_SAMPLES // 1.2:]
 
   return train_data, train_labels, train_colors, train_charSet, \
          validation_data, validation_labels, validation_colors, validation_charSet, \
@@ -353,11 +355,11 @@ def main(argv=None):  # pylint: disable=unused-argument
                                       fc2_weights, fc2_biases, False)
 
     label_loss = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits, train_labels_node))
-    image_loss = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logitsclr, train_colors_node))
+    color_loss = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logitsclr, train_colors_node))
     charset_loss = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logitscharset, train_charSet_node))
-    loss = LABEL_LOSS_WEIGHT * label_loss + COLOR_LOSS_WEIGHT * image_loss + CHARSET_LOSS_WEIGHT * charset_loss
+    loss = LABEL_LOSS_WEIGHT * label_loss + COLOR_LOSS_WEIGHT * color_loss + CHARSET_LOSS_WEIGHT * charset_loss
     tf.scalar_summary('label_loss', label_loss) #!!!
-    tf.scalar_summary('image_loss', image_loss) #!!!
+    tf.scalar_summary('color_loss', color_loss) #!!!
     tf.scalar_summary('charset_loss', charset_loss) #!!!
     tf.scalar_summary('weighted_loss', loss)  #!!!
 
