@@ -66,16 +66,8 @@ def write_back(file, data):
   f.write(data.tobytes())
   f.close()
 
-def readback(file):
-  f = open(file, "rb")
-  buf = f.read(28 * 28 * 2 * 3 * 2)
-  data = numpy.frombuffer(buf, dtype=numpy.float16)
-  print(data)
-  print(len(data))
-  f.close()
-
 def transformImage_irrelevent(images, labels):
-  colored_images = numpy.zeros((images.shape[0], images.shape[1], images.shape[2], 3), dtype=numpy.float16)
+  colored_images = numpy.zeros((images.shape[0], images.shape[1], images.shape[2], 3), dtype=numpy.float32)
   color = numpy.zeros(shape=labels.size, dtype=numpy.uint8)
   charSet = numpy.zeros(shape=labels.size, dtype=numpy.uint8)
   for i in range(images.shape[0]):
