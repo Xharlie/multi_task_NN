@@ -45,8 +45,8 @@ def extract_data(filename, num_images):
     print(data.shape)
     data = data.reshape(num_images, ORI_IMAGE_SIZE, ORI_IMAGE_SIZE, ORI_NUM_CHANNELS)
     for i in range(0, num_images):
-      for j in range(0, ORI_IMAGE_SIZE):
-        for k in range(0, ORI_IMAGE_SIZE):
+      for j in range(0, IMAGE_SIZE):
+        for k in range(0, IMAGE_SIZE):
           reformData[i][j][k] = data[i][j//2][k//2]
     return reformData
 
