@@ -76,12 +76,12 @@ def inference():
       seed=SEED, dtype=data_type(FLAGS)))
   conv3_biases = tf.Variable(tf.constant(PARA_INIT_CONS, shape=[64], dtype=data_type(FLAGS)))
 
-  fccharset_weights = tf.Variable(  # fully connected, depth 512.
-      tf.truncated_normal([IMAGE_SIZE // 4 * IMAGE_SIZE // 4 * 64, NUM_CHARSET],
+  fclabel_weights = tf.Variable(  # fully connected, depth 512.
+      tf.truncated_normal([IMAGE_SIZE // 4 * IMAGE_SIZE // 4 * 64, NUM_LABELS],
                           stddev=PARA_INIT_STD,
                           seed=SEED,
                           dtype=data_type(FLAGS)))
-  fccharset_biases = tf.Variable(tf.constant(PARA_INIT_CONS, shape=[NUM_CHARSET], dtype=data_type(FLAGS)))
+  fclabel_biases = tf.Variable(tf.constant(PARA_INIT_CONS, shape=[NUM_LABELS], dtype=data_type(FLAGS)))
 
   conv5_weights = tf.Variable(tf.truncated_normal(
       [5, 5, 64, 64], stddev=PARA_INIT_STD,
@@ -94,12 +94,12 @@ def inference():
                           seed=SEED,
                           dtype=data_type(FLAGS)))
   fc1_biases = tf.Variable(tf.constant(PARA_INIT_CONS, shape=[512], dtype=data_type(FLAGS)))
-  fc2_weights = tf.Variable(tf.truncated_normal([512, NUM_LABELS],
+  fc2_weights = tf.Variable(tf.truncated_normal([512, NUM_CHARSET],
                                                 stddev=PARA_INIT_STD,
                                                 seed=SEED,
                                                 dtype=data_type(FLAGS)))
   fc2_biases = tf.Variable(tf.constant(
-    PARA_INIT_CONS, shape=[NUM_LABELS], dtype=data_type(FLAGS)))
+    PARA_INIT_CONS, shape=[NUM_CHARSET], dtype=data_type(FLAGS)))
 
   variable_summaries(conv1_weights, "conv1_weights") #!!!
   variable_summaries(conv1_biases, "conv1_biases")  #!!!
@@ -107,8 +107,8 @@ def inference():
   variable_summaries(fcclr_biases, "fcclr_biases")  #!!!
   variable_summaries(conv3_weights, "conv3_weights") #!!!
   variable_summaries(conv3_biases, "conv3_biases")  #!!!
-  variable_summaries(fccharset_weights, "fccharset_weights") #!!!
-  variable_summaries(fccharset_biases, "fccharset_biases")  #!!!
+  variable_summaries(fclabel_weights, "fclabel_weights") #!!!
+  variable_summaries(fclabel_biases, "fclabel_biases")  #!!!
   variable_summaries(conv5_weights, "conv5_weights") #!!!
   variable_summaries(conv5_biases, "conv5_biases")  #!!!
   variable_summaries(fc1_weights, "fc1_weights") #!!!
@@ -119,7 +119,7 @@ def inference():
   return conv1_weights, conv1_biases, \
           fcclr_weights, fcclr_biases, \
           conv3_weights, conv3_biases, \
-          fccharset_weights, fccharset_biases, \
+          fclabel_weights, fclabel_biases, \
           conv5_weights, conv5_biases, \
           fc1_weights, fc1_biases, \
           fc2_weights, fc2_biases
@@ -129,7 +129,7 @@ def inference():
 def model(data, conv1_weights, conv1_biases,
           fcclr_weights, fcclr_biases,
           conv3_weights, conv3_biases,
-          fccharset_weights, fccharset_biases,
+          fclabel_weights, fclabel_biases,
           conv5_weights, conv5_biases,
           fc1_weights, fc1_biases,
           fc2_weights, fc2_biases, train=False,):
@@ -185,13 +185,13 @@ def model(data, conv1_weights, conv1_biases,
     pool_shape = pool.get_shape().as_list()
     print_activations(pool)
 
-  with tf.name_scope('fccharset') as scope:
-    reshapecharset = tf.reshape(
+  with tf.name_scope('fclabel') as scope:
+    reshapelabel = tf.reshape(
         pool,
         [pool_shape[0], pool_shape[1] * pool_shape[2] * pool_shape[3]])
     # Fully connected layer. Note that the '+' operation automatically
     # broadcasts the biases.
-    print_activations(reshapecharset)
+    print_activations(reshapelabel)
 
   with tf.name_scope('conv5') as scope:
 
@@ -226,12 +226,12 @@ def model(data, conv1_weights, conv1_biases,
   # activations such that no rescaling is needed at evaluation time.
   if train:
     hidden = tf.nn.dropout(hidden, 0.5, seed=SEED)
-  return tf.matmul(hidden, fc2_weights) + fc2_biases, \
+  return tf.matmul(reshapelabel, fclabel_weights) + fclabel_biases, \
          tf.matmul(reshapeclr, fcclr_weights) + fcclr_biases, \
-         tf.matmul(reshapecharset, fccharset_weights) + fccharset_biases, \
+         tf.matmul(hidden, fc2_weights) + fc2_biases, \
          {"fc1_weights":fc1_weights, "fc1_biases":fc1_biases,
           "fc2_weights":fc2_weights, "fc2_biases":fc2_biases,
-          "fccharset_weights":fccharset_weights, "fccharset_biases":fccharset_biases,
+          "fclabel_weights":fclabel_weights, "fclabel_biases":fclabel_biases,
           "fcclr_weights":fcclr_weights, "fcclr_biases":fcclr_biases}
 
 # Small utility function to evaluate a dataset by feeding batches of data to
@@ -282,22 +282,22 @@ def load():
     data = extract_data(data_filename, NUM_SAMPLES)
 
     # Generate a validation set.
-    print(TRAINING_SIZE)
-    train_data = data[:TRAINING_SIZE , ...]
-    train_labels = labels[:TRAINING_SIZE]
-    train_colors = color[:TRAINING_SIZE]
-    train_charSet = charSet[:TRAINING_SIZE]
+    print(NUM_SAMPLES // 1.5)
+    train_data = data[:NUM_SAMPLES // 1.5 , ...]
+    train_labels = labels[:NUM_SAMPLES // 1.5]
+    train_colors = color[:NUM_SAMPLES // 1.5]
+    train_charSet = charSet[:NUM_SAMPLES // 1.5]
 
-    print(VALIDATION_SIZE)
-    validation_data = data[TRAINING_SIZE: TRAINING_SIZE + VALIDATION_SIZE, ...]
-    validation_colors = color[TRAINING_SIZE: TRAINING_SIZE + VALIDATION_SIZE]
-    validation_labels = labels[TRAINING_SIZE: TRAINING_SIZE + VALIDATION_SIZE]
-    validation_charSet = charSet[TRAINING_SIZE: TRAINING_SIZE + VALIDATION_SIZE]
+    print(NUM_SAMPLES // 1.2)
+    validation_data = data[NUM_SAMPLES // 1.5: NUM_SAMPLES // 1.2, ...]
+    validation_colors = color[NUM_SAMPLES // 1.5:NUM_SAMPLES // 1.2]
+    validation_labels = labels[NUM_SAMPLES // 1.5:NUM_SAMPLES // 1.2]
+    validation_charSet = charSet[NUM_SAMPLES // 1.5:NUM_SAMPLES // 1.2]
 
-    test_data = data[TRAINING_SIZE + VALIDATION_SIZE:, ...]
-    test_colors = color[TRAINING_SIZE + VALIDATION_SIZE:]
-    test_labels = labels[TRAINING_SIZE + VALIDATION_SIZE:]
-    test_charSet = charSet[TRAINING_SIZE + VALIDATION_SIZE:]
+    test_data = data[NUM_SAMPLES // 1.2:, ...]
+    test_colors = color[NUM_SAMPLES // 1.2:]
+    test_labels = labels[NUM_SAMPLES // 1.2:]
+    test_charSet = charSet[NUM_SAMPLES // 1.2:]
 
   return train_data, train_labels, train_colors, train_charSet, \
          validation_data, validation_labels, validation_colors, validation_charSet, \
@@ -333,26 +333,26 @@ def main(argv=None):  # pylint: disable=unused-argument
     conv1_weights, conv1_biases, \
     fcclr_weights, fcclr_biases, \
     conv3_weights, conv3_biases, \
-    fccharset_weights, fccharset_biases, \
+    fclabel_weights, fclabel_biases, \
     conv5_weights, conv5_biases, \
     fc1_weights, fc1_biases, \
     fc2_weights, fc2_biases = inference()
 
-    logits, logitsclr, logitscharset, regul = model(train_data_node,conv1_weights, conv1_biases, \
-                                      fcclr_weights, fcclr_biases, \
-                                      conv3_weights, conv3_biases, \
-                                      fccharset_weights, fccharset_biases, \
-                                      conv5_weights, conv5_biases, \
-                                      fc1_weights, fc1_biases, \
-                                      fc2_weights, fc2_biases, True)
+    logits, logitsclr, logitscharset, regul = model(train_data_node, conv1_weights, conv1_biases, \
+                                                    fcclr_weights, fcclr_biases, \
+                                                    conv3_weights, conv3_biases, \
+                                                    fclabel_weights, fclabel_biases, \
+                                                    conv5_weights, conv5_biases, \
+                                                    fc1_weights, fc1_biases, \
+                                                    fc2_weights, fc2_biases, True)
 
     evallogits, evallogitsclr, evallogitscharset, _ = model(eval_data_node, conv1_weights, conv1_biases, \
-                                      fcclr_weights, fcclr_biases, \
-                                      conv3_weights, conv3_biases, \
-                                      fccharset_weights, fccharset_biases, \
-                                      conv5_weights, conv5_biases, \
-                                      fc1_weights, fc1_biases, \
-                                      fc2_weights, fc2_biases, False)
+                                                            fcclr_weights, fcclr_biases, \
+                                                            conv3_weights, conv3_biases, \
+                                                            fclabel_weights, fclabel_biases, \
+                                                            conv5_weights, conv5_biases, \
+                                                            fc1_weights, fc1_biases, \
+                                                            fc2_weights, fc2_biases, False)
 
     label_loss = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits, train_labels_node))
     color_loss = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logitsclr, train_colors_node))
@@ -365,28 +365,28 @@ def main(argv=None):  # pylint: disable=unused-argument
 
     # L2 regularization for the fully connected parameters.
     regularizers = REGULRATE * (
-                    LABEL_LOSS_WEIGHT * (tf.nn.l2_loss(regul["fc1_weights"]) + tf.nn.l2_loss(regul["fc1_biases"]) +
-                    tf.nn.l2_loss(regul["fc2_weights"]) + tf.nn.l2_loss(regul["fc2_biases"])) \
-                    + COLOR_LOSS_WEIGHT * (tf.nn.l2_loss(regul["fcclr_weights"]) + tf.nn.l2_loss(regul["fcclr_biases"]))
-                    + CHARSET_LOSS_WEIGHT * (tf.nn.l2_loss(regul["fccharset_weights"]) + tf.nn.l2_loss(regul["fccharset_biases"]))
+      CHARSET_LOSS_WEIGHT * (tf.nn.l2_loss(regul["fc1_weights"]) + tf.nn.l2_loss(regul["fc1_biases"]) +
+                             tf.nn.l2_loss(regul["fc2_weights"]) + tf.nn.l2_loss(regul["fc2_biases"])) \
+      + COLOR_LOSS_WEIGHT * (tf.nn.l2_loss(regul["fcclr_weights"]) + tf.nn.l2_loss(regul["fcclr_biases"]))
+      + LABEL_LOSS_WEIGHT * (tf.nn.l2_loss(regul["fclabel_weights"]) + tf.nn.l2_loss(regul["fclabel_biases"]))
     )
-    tf.scalar_summary('regularizers', regularizers) #!!!
+    tf.scalar_summary('regularizers', regularizers)  # !!!
     # Add the regularization term to the loss.
     loss += regularizers
-    tf.scalar_summary('loss', loss) #!!!
+    tf.scalar_summary('loss', loss)  # !!!
 
     # Optimizer: set up a variable that's incremented once per batch and
     # controls the learning rate decay.
     batch = tf.Variable(0, dtype=data_type(FLAGS))
     # Decay once per epoch, using an exponential schedule starting at 0.01.
     learning_rate = tf.train.exponential_decay(
-        BASE_LRN_RATE,       # Base learning rate.
-        batch * BATCH_SIZE,  # Current index into the dataset.
-        train_size,          # Decay step.
-        0.95,                # Decay rate.
-        staircase=True)
+      BASE_LRN_RATE,  # Base learning rate.
+      batch * BATCH_SIZE,  # Current index into the dataset.
+      train_size,  # Decay step.
+      0.95,  # Decay rate.
+      staircase=True)
     # Use simple momentum for the optimization.
-    tf.scalar_summary('learning_rate', learning_rate) #!!!
+    tf.scalar_summary('learning_rate', learning_rate)  # !!!
     optimizer = tf.train.MomentumOptimizer(learning_rate,
                                            0.9).minimize(loss,
                                                          global_step=batch)
@@ -410,13 +410,14 @@ def main(argv=None):  # pylint: disable=unused-argument
         label_error = 1 - tf.reduce_mean(tf.cast(correct_train_label_prediction, tf.float32))
         color_error = 1 - tf.reduce_mean(tf.cast(correct_train_color_prediction, tf.float32))
         charset_error = 1 - tf.reduce_mean(tf.cast(correct_train_charset_prediction, tf.float32))
-      tf.scalar_summary('label_error', label_error) #!!!
-      tf.scalar_summary('color_error', color_error) #!!!
-      tf.scalar_summary('charset_error', charset_error) #!!!
+      tf.scalar_summary('label_error', label_error)  # !!!
+      tf.scalar_summary('color_error', color_error)  # !!!
+      tf.scalar_summary('charset_error', charset_error)  # !!!
 
     merged = tf.merge_all_summaries()
-    train_writer = tf.train.SummaryWriter(FLAGS.summaries_dir + '/' + str(REGULRATE) + '/' + str(COLOR_LOSS_WEIGHT) + '/train',
-                                          sess.graph)
+    train_writer = tf.train.SummaryWriter(
+      FLAGS.summaries_dir + '/' + str(REGULRATE) + '/' + str(COLOR_LOSS_WEIGHT) + '/train',
+      sess.graph)
 
     # Create a local session to run the training.
     start_time = time.time()
@@ -440,8 +441,8 @@ def main(argv=None):  # pylint: disable=unused-argument
                    train_charSet_node: batch_charset}
       # Run the graph and fetch some of the nodes.
       _, l, lr, label_predictions, color_predictions, charset_predictions = sess.run(
-          [optimizer, loss, learning_rate, train_label_prediction, train_color_prediction, train_charset_prediction],
-          feed_dict=feed_dict)
+        [optimizer, loss, learning_rate, train_label_prediction, train_color_prediction, train_charset_prediction],
+        feed_dict=feed_dict)
       if step % EVAL_FREQUENCY == 0:
         train_summary = sess.run(merged, feed_dict=feed_dict)
         train_writer.add_summary(train_summary, step)
@@ -455,15 +456,22 @@ def main(argv=None):  # pylint: disable=unused-argument
         print('Minibatch label error: %.1f%%' % error_rate(label_predictions, batch_labels))
         print('Minibatch color error: %.1f%%' % error_rate(color_predictions, batch_colors))
         print('Minibatch charset error: %.1f%%' % error_rate(charset_predictions, batch_charset))
-        eval_label_predictions, eval_color_predictions, eval_charset_predictions = eval_in_batches(validation_data, sess,
-                               eval_label_prediction, eval_color_prediction, eval_charset_prediction, eval_data_node)
+        eval_label_predictions, eval_color_predictions, eval_charset_predictions = eval_in_batches(validation_data,
+                                                                                                   sess,
+                                                                                                   eval_label_prediction,
+                                                                                                   eval_color_prediction,
+                                                                                                   eval_charset_prediction,
+                                                                                                   eval_data_node)
         print('Validation label error: %.1f%%' % error_rate(eval_label_predictions, validation_labels))
         print('Validation color error: %.1f%%' % error_rate(eval_color_predictions, validation_colors))
         print('Validation charset error: %.1f%%' % error_rate(eval_charset_predictions, validation_charSet))
         sys.stdout.flush()
     # Finally print the result!
     test_label_predictions, test_color_predictions, test_charSet_predictions = eval_in_batches(test_data, sess,
-                               eval_label_prediction, eval_color_prediction, eval_charset_prediction, eval_data_node)
+                                                                                               eval_label_prediction,
+                                                                                               eval_color_prediction,
+                                                                                               eval_charset_prediction,
+                                                                                               eval_data_node)
     test_label_error = error_rate(test_label_predictions, test_labels)
     test_color_error = error_rate(test_color_predictions, test_colors)
     test_charSet_error = error_rate(test_charSet_predictions, test_charSet)
