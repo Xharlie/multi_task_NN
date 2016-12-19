@@ -56,7 +56,7 @@ def extract_labels(filename, num_images):
   with gzip.open(filename) as bytestream:
     bytestream.read(8)
     buf = bytestream.read(1 * num_images)
-    labels = numpy.frombuffer(buf, dtype=numpy.uint8).astype(numpy.int64)
+    labels = numpy.frombuffer(buf, dtype=numpy.uint8)
   return labels
 
 def write_back(file, data):

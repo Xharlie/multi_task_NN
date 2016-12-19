@@ -57,7 +57,7 @@ def extract_data(filename, num_images):
   print('Extracting', filename)
   with open(filename) as bytestream:
     buf = bytestream.read(IMAGE_SIZE * IMAGE_SIZE * num_images * NUM_CHANNELS * 2)
-    data = numpy.frombuffer(buf, dtype=numpy.float16).astype(numpy.float32)
+    data = numpy.frombuffer(buf, dtype=numpy.float32)
     data = data.reshape(num_images, IMAGE_SIZE, IMAGE_SIZE, NUM_CHANNELS)
     return data
 
